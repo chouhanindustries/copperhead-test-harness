@@ -13,12 +13,12 @@ Companion runbook: [RUNBOOK.md](RUNBOOK.md). Known-issue register:
 
 ## Where things live
 
-Three sibling directories, and the split matters:
+The layout, and why the split matters:
 
 | Path | Holds | Note |
 | --- | --- | --- |
 | `copperhead-test-harness/` | this guide, `RUNBOOK.md`, `bin/`, `run-logs/` | **not visible to the design agent** |
-| `<workspace>/` | `brief.md`, `docs/`, the KiCad project | the design workspace `create` runs in; make one with `bin/new-workspace.sh` |
+| `copperhead-test-harness/workspaces/<name>/` | `brief.md`, `docs/`, the KiCad project | the design workspace `create` runs in; make one with `bin/new-workspace.sh` |
 | `copperhead/` | the CLI source under test | `npm run build && npm link` |
 
 Harness docs and run evidence sit **outside** the design workspace deliberately. When they
@@ -28,11 +28,11 @@ doc, then apologising for having touched it — and a later attempt died on `Pro
 long · ~1003121 tokens` because `search` reached the preserved transcripts in `run-logs/`.
 Neither was the agent's fault; both were the harness leaking into the design.
 
-**Every shell block below runs from the design workspace** (`cd ../<workspace>`), not from this
-directory: `brief.md`, `git -C .` and `../copperhead` are all relative to it. The exception
-is the attempt log, which is written to the harness's `run-logs/` — outside
-the repo, so a rollback's `git clean -fd` cannot delete the evidence of the failure that
-caused it.
+**Every shell block below runs from the design workspace** (`cd workspaces/<name>` from the
+harness root), not from this directory: `brief.md` and `git -C .` are relative to it, and
+the copperhead checkout is `../../../copperhead`. The exception is the attempt log, which is
+written to the harness's `run-logs/` — outside the workspace repo, so a rollback's
+`git clean -fd` cannot delete the evidence of the failure that caused it.
 
 ---
 
@@ -161,7 +161,7 @@ If the CLI does not resolve to the dev build, or you changed copperhead source:
 
 ```bash
 cd ../copperhead && npm run build && npm link
-cd ../<workspace>  && npm link copperhead
+cd ../copperhead-test-harness/workspaces/<name> && npm link copperhead
 readlink -f "$(which copperhead)"     # re-verify; do not assume the relink took
 copperhead --version                  # and that it actually runs
 ```

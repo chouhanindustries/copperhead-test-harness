@@ -11,37 +11,39 @@ Drive `copperhead create` to a clean, complete end-to-end run: all 8 stages in o
 
 ## Layout
 
-Three sibling directories. The split is deliberate and load-bearing:
+The split is deliberate and load-bearing:
 
 | Path | Holds |
 | --- | --- |
 | `copperhead-test-harness/` | this runbook, the guide, `bin/`, `briefs/`, `run-logs/` — **invisible to the design agent** |
-| `<workspace>/` | the design workspace: `brief.md`, `docs/`, the KiCad project |
-| `copperhead/` | the CLI source under test |
+| `copperhead-test-harness/workspaces/<name>/` | a design workspace: `brief.md`, `docs/`, the KiCad project. Its own git repo; not tracked by the harness |
+| `copperhead/` | the CLI source under test, a sibling of the harness |
 
-Harness material stays out of the workspace because the design agent reads the workspace.
-When the guides lived inside it, the stage-4 agent read them on turn 1 and applied the
-harness rule "never hand-satisfy a gate" to its own `docs/BOM.md` — refusing to fix the doc,
-then apologising for having touched it. When run evidence lived inside it, a stage attempt
-died because `search` pulled ~600 K tokens of transcript into the prompt (I5).
+Harness material stays out of the workspace because the design agent reads the workspace it
+runs in. When the guides lived inside one, the stage-4 agent read them on turn 1 and applied
+the harness rule "never hand-satisfy a gate" to its own `docs/BOM.md` — refusing to fix the
+doc, then apologising for having touched it. When run evidence lived inside one, a stage
+attempt died because `search` pulled ~600 K tokens of transcript into the prompt (I5).
 
-`bin/new-workspace.sh` creates workspaces as siblings of the harness for exactly this
-reason. Never create one inside the harness checkout.
+Gathering workspaces under `workspaces/` keeps that line — nothing in `docs/` or `run-logs/`
+sits below the directory `create` runs in — while leaving one obvious place to look for
+every board being driven. `bin/new-workspace.sh` puts them there. Never create one at the
+harness root.
 
 ## Running an attempt
 
 ```bash
 bin/doctor.sh                                    # once per machine, and after any rebuild
-bin/new-workspace.sh sensor-node                 # ../sensor-node, from briefs/sensor-node.md
-bin/run-attempt.sh -w ../sensor-node -m claude-code:opus "baseline"
+bin/new-workspace.sh sensor-node                 # workspaces/sensor-node, from briefs/
+bin/run-attempt.sh -w workspaces/sensor-node -m claude-code:opus "baseline"
 ```
 
 From inside a workspace the flags collapse — the script picks up `$PWD` when it holds the
 brief:
 
 ```bash
-cd ../sensor-node
-../copperhead-test-harness/bin/run-attempt.sh "the one variable changed vs the last attempt"
+cd workspaces/sensor-node
+../../bin/run-attempt.sh "the one variable changed vs the last attempt"
 ```
 
 The script handles preconditions, capture, evidence and metadata. It refuses to start if
@@ -52,11 +54,11 @@ skips the evidence copy, which is the only thing that makes a failure diagnosabl
 
 ### From any other folder
 
-The harness is not tied to any one workspace. It locates itself, writes only absolute
-paths, and takes the workspace as an argument — so it drives any brief from anywhere:
+The harness is not tied to `workspaces/`. It locates itself, writes only absolute paths, and
+takes the workspace as an argument — so it drives any brief from anywhere:
 
 ```bash
-# a workspace that is not a sibling
+# a workspace kept outside the harness entirely
 run-attempt.sh -w ~/work/lamp-board -b brief.md "baseline"
 
 # a copperhead checkout somewhere else
@@ -68,7 +70,7 @@ run-attempt.sh -w ~/work/lamp-board -o ~/campaigns/lamp "baseline"
 
 | Flag | Default |
 | --- | --- |
-| `-w, --workspace DIR` | `$PWD` if it holds the brief, else `<harness>/../test` |
+| `-w, --workspace DIR` | `$PWD` when it holds the brief; otherwise required |
 | `-b, --brief FILE` | `brief.md`, relative to the workspace |
 | `-s, --src DIR` | `<harness>/../copperhead` |
 | `-m, --model MODEL` | `claude-code` |

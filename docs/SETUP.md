@@ -5,19 +5,21 @@ this page; run it rather than trusting this list.
 
 ## Layout
 
-The harness expects to sit beside the copperhead checkout, and creates design workspaces as
-its siblings:
+The harness expects to sit beside the copperhead checkout, and gathers design workspaces
+under `workspaces/`:
 
 ```text
 <parent>/
-  copperhead/                 the CLI source under test
-  copperhead-test-harness/    this repo
-  sensor-node/                a design workspace, created by bin/new-workspace.sh
+  copperhead/                     the CLI source under test
+  copperhead-test-harness/        this repo
+    workspaces/
+      sensor-node/                a design workspace, created by bin/new-workspace.sh
 ```
 
 Nothing enforces this — `--src` and `--workspace` point anywhere — but the defaults assume
 it, and the separation between harness and workspace is load-bearing (see
-[RUNBOOK.md](RUNBOOK.md#layout)).
+[RUNBOOK.md](RUNBOOK.md#layout)). `workspaces/` is not tracked: a workspace is pipeline
+output regenerated from a brief.
 
 ## Prerequisites
 
@@ -58,8 +60,8 @@ Repeat the build **and** the verify after every source change. `doctor.sh` fails
 
 ```bash
 bin/doctor.sh
-bin/new-workspace.sh sensor-node          # ../sensor-node, from briefs/sensor-node.md
-bin/run-attempt.sh -w ../sensor-node -m claude-code:opus "baseline"
+bin/new-workspace.sh sensor-node          # workspaces/sensor-node, from briefs/sensor-node.md
+bin/run-attempt.sh -w workspaces/sensor-node -m claude-code:opus "baseline"
 ```
 
 Runs take hours. Launch in the background; killing an attempt midway skips the evidence

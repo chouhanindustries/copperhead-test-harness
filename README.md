@@ -15,8 +15,8 @@ what.
 git clone <this repo> && cd copperhead-test-harness
 
 bin/doctor.sh                             # preflight — fails loudly on a bad environment
-bin/new-workspace.sh sensor-node          # ../sensor-node, from briefs/sensor-node.md
-bin/run-attempt.sh -w ../sensor-node -m claude-code:opus "baseline"
+bin/new-workspace.sh sensor-node          # workspaces/sensor-node, from briefs/sensor-node.md
+bin/run-attempt.sh -w workspaces/sensor-node -m claude-code:opus "baseline"
 ```
 
 Everything the attempt produced lands in `run-logs/<session>/attempt-01/`. Read
@@ -30,7 +30,7 @@ Full prerequisites: [docs/SETUP.md](docs/SETUP.md).
 ```text
 bin/
   doctor.sh              preflight: CLI, toolchain, symbol libraries, disk, RAM, workspace
-  new-workspace.sh       create a design workspace from a brief, as a sibling of the harness
+  new-workspace.sh       create a design workspace from a brief
   run-attempt.sh         one attempt, fully captured
   lib/                   metadata collectors, called by run-attempt.sh
 docs/
@@ -39,25 +39,35 @@ docs/
   SETUP.md               machine prerequisites
 briefs/                  design briefs to drive the pipeline with
 templates/               ledger skeletons for ISSUES-FOUND.md and RECOMMENDATIONS.md
-.claude/skills/          run-attempt and attempt-report, for driving this under Claude Code
+.claude/skills/          run-attempt, attempt-report, report-issue — for driving this under Claude Code
+workspaces/              the design workspaces themselves — not tracked
 run-logs/                where attempts land — not tracked
 ```
 
 ## How it is meant to be used
 
-Three sibling directories, and the split matters:
+The harness sits beside the CLI it tests, and gathers every design workspace under
+`workspaces/`:
 
 ```text
 <parent>/
-  copperhead/                 the CLI source under test
-  copperhead-test-harness/    this repo — invisible to the design agent
-  sensor-node/                a design workspace: brief.md, docs/, the KiCad project
+  copperhead/                     the CLI source under test
+  copperhead-test-harness/
+    bin/ docs/ briefs/ run-logs/  harness material
+    workspaces/
+      sensor-node/                brief.md, docs/, the KiCad project — its own git repo
+      bench-psu/
 ```
 
-Harness material stays out of the design workspace because the design agent reads the
-workspace. When the guides lived inside it, the stage-4 agent read them on turn 1 and
-applied a harness rule to its own BOM. When run evidence lived inside it, a stage died
-pulling ~600 K tokens of transcript into the prompt.
+The load-bearing rule is that no harness material lands **inside** a workspace, because the
+design agent reads the workspace it runs in. When the guides lived in one, the stage-4 agent
+read them on turn 1 and applied a harness rule to its own BOM. When run evidence lived in
+one, a stage died pulling ~600 K tokens of transcript into the prompt. Keeping workspaces
+one level down, together, holds that line — `run-logs/` and `docs/` are never below the
+directory `create` runs in.
+
+Each workspace is a git repo of its own: `create` refuses to run outside one, and its
+rollback is `git reset --hard` + `git clean -fd` against that repo.
 
 The loop is: run one attempt, read `metadata.json`, diagnose to a **named mechanism**, apply
 the smallest fix, write the report, change exactly one variable, rerun. Resume is automatic
@@ -68,7 +78,9 @@ Read [docs/RUNBOOK.md](docs/RUNBOOK.md) before the first attempt, and
 
 ## What this repo does not carry
 
-`run-logs/` is untracked. Attempt transcripts and evidence are large, per-machine, and merge
+`workspaces/` and `run-logs/` are untracked. A workspace is pipeline output regenerated from
+a brief — clone the harness, run `bin/new-workspace.sh`, and you have the same starting
+point the last contributor had. Attempt transcripts and evidence are large, per-machine, and merge
 hostile, and the `I<n>`/`R<n>` registers do not reconcile across contributors — so each
 checkout keeps its own campaign history. Start the registers from `templates/` and file real
 defects upstream against copperhead, where they are shared.

@@ -8,11 +8,13 @@
 # and its rollback is `git reset --hard` + `git clean -fd`, so the baseline
 # commit is what a failed stage rolls back to.
 #
-# The workspace is created OUTSIDE the harness, as its sibling. Harness material
-# must not be visible to the design agent: when the guides lived in the
-# workspace the stage-4 agent read them on turn 1 and applied a harness rule to
-# its own BOM, and when run evidence lived there a stage died pulling ~600 K
-# tokens of transcript into the prompt (I5).
+# Workspaces are gathered under <harness>/workspaces/, which is not tracked.
+# What matters is that no harness material lands INSIDE a workspace: when the
+# guides lived in one, the stage-4 agent read them on turn 1 and applied a
+# harness rule to its own BOM, and when run evidence lived there a stage died
+# pulling ~600 K tokens of transcript into the prompt (I5). Keeping every
+# workspace one level down, beside the others, holds that line and keeps the
+# harness root readable.
 #
 # Usage:
 #   new-workspace.sh <brief> [name]
@@ -20,12 +22,12 @@
 #   <brief>   a file, or the stem of one in briefs/ (e.g. `sensor-node`)
 #   [name]    workspace directory name   (default: the brief's stem)
 #
-#   -d, --dir DIR   where to create it   (default: <harness>/..)
+#   -d, --dir DIR   where to create it   (default: <harness>/workspaces)
 #
 set -uo pipefail
 
 HARNESS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PARENT="$(cd "$HARNESS/.." && pwd)"
+PARENT="$HARNESS/workspaces"
 ARGS=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -54,6 +56,8 @@ fi
 BRIEF="$(cd "$(dirname "$BRIEF")" && pwd)/$(basename "$BRIEF")"
 
 NAME="${ARGS[1]:-$(basename "${BRIEF%.md}")}"
+mkdir -p "$PARENT" || { echo "cannot create $PARENT" >&2; exit 2; }
+PARENT="$(cd "$PARENT" && pwd)"
 DEST="$PARENT/$NAME"
 [ -e "$DEST" ] && { echo "$DEST already exists — pick another name, or drive the existing workspace" >&2; exit 2; }
 

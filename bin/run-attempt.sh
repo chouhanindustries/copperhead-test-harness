@@ -24,8 +24,8 @@
 # Usage:
 #   run-attempt.sh [options] "<the one variable changed vs the previous attempt>"
 #
-#   -w, --workspace DIR   design workspace to run in   (default: $PWD if it holds
-#                         the brief, else <harness>/../test)
+#   -w, --workspace DIR   design workspace to run in   (default: $PWD when it holds
+#                         the brief; otherwise required)
 #   -b, --brief FILE      brief, relative to the workspace   (default: brief.md)
 #   -s, --src DIR         copperhead source under test   (default: <harness>/../copperhead)
 #   -m, --model MODEL     model passed to `copperhead create`   (default: claude-code)
@@ -33,8 +33,8 @@
 #   -h, --help            this text
 #
 # Runnable from anywhere — the harness locates itself, and every path it writes
-# is absolute. The three defaults exist for the common single-workspace case;
-# point them anywhere to drive a different brief with the same harness, and its
+# is absolute. Workspaces normally live under <harness>/workspaces, but point
+# --workspace anywhere to drive a different brief with the same harness: its
 # attempts land in their own session (sessions are keyed on workspace + brief).
 #
 # Equivalent environment variables, for callers that would rather not pass
@@ -72,10 +72,21 @@ done
 VARIABLE="${VARIABLE:-none — baseline}"
 
 # Workspace default: the current directory when it looks like one (it holds the
-# brief), otherwise the harness's sibling. Running `run-attempt.sh` from inside a
-# workspace should just work.
+# brief). Running `run-attempt.sh` from inside a workspace should just work.
+# Anything else is a guess, and a guess here runs a multi-hour attempt against
+# the wrong board — so refuse and say what is available instead.
 if [ -z "$WORKSPACE" ]; then
-  if [ -f "$PWD/$BRIEF" ]; then WORKSPACE="$PWD"; else WORKSPACE="$HARNESS/../test"; fi
+  if [ -f "$PWD/$BRIEF" ]; then
+    WORKSPACE="$PWD"
+  else
+    echo "no workspace: $PWD holds no $BRIEF, and none was given with -w" >&2
+    if [ -d "$HARNESS/workspaces" ]; then
+      echo "available under $HARNESS/workspaces:" >&2
+      for w in "$HARNESS"/workspaces/*/; do [ -d "$w" ] && echo "  $(basename "$w")" >&2; done
+    fi
+    echo "create one with: $HARNESS/bin/new-workspace.sh <brief>" >&2
+    exit 2
+  fi
 fi
 WORKSPACE="$(cd "$WORKSPACE" 2>/dev/null && pwd)" || { echo "no workspace at $WORKSPACE" >&2; exit 2; }
 SRC="${SRC:-$HARNESS/../copperhead}"

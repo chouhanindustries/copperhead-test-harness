@@ -1,24 +1,13 @@
+# Design workspaces. Each is a git repo of its own holding pipeline output
+# generated from a brief — recreate one with bin/new-workspace.sh rather than
+# cloning it.
+/workspaces/*
+!/workspaces/.gitkeep
+
 # Campaign history: large, per-machine, and merge-hostile. Each checkout keeps
 # its own. See README.md § "What this repo does not carry".
-run-logs/*
-!run-logs/.gitkeep
-
-# Design workspaces. These are git repos of their own, holding pipeline output
-# generated from a brief — recreate one with bin/new-workspace.sh rather than
-# cloning it. They belong beside the harness, not inside it; these entries only
-# catch the ones that already live here.
-/bench-psu/
-/joystick/
-/lemondrop/
-/midi-pedal/
-/rc600/
-/reenvo/
-/sensor-node/
-*.kicad_sch
-*.kicad_pcb
-*.kicad_pro
-*.kicad_prl
-.copperhead/
+/run-logs/*
+!/run-logs/.gitkeep
 
 # KiCad's git-backed project history
 .history/
