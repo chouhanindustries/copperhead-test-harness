@@ -1,0 +1,1 @@
+I want to run a nema 17 stepper motor it should turn 90 degree when thr proximity senser sense true and come back to the initial position as soon as its false. a have a battery on board to power some DC motor and I wanto charge it throgh the main board. Design a PCB to execute this application.
